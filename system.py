@@ -39,3 +39,10 @@ class SystemRaportowania:
                     'uzytkownicy': self.uzytkownicy,
                     'raporty': self.raporty
                 }, f, ensure_ascii=False, indent=4)
+
+    def pobierz_raporty_pracownika(self, login):
+        """Pobiera wszystkie raporty dla danego pracownika"""
+        if login in self.raporty:
+            # Sortuj raporty po dacie
+            return sorted(self.raporty[login], key=lambda x: x['data'], reverse=True)
+        return []
