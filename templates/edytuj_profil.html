@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Edytuj profil</h2>
+    
+    <div class="card mt-4">
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="login" class="form-label">Login</label>
+                    <input type="text" class="form-control" id="login" value="{{ session['uzytkownik'] }}" disabled>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="imie" class="form-label">Imię</label>
+                    <input type="text" class="form-control" id="imie" name="imie" value="{{ uzytkownik.imie }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="nazwisko" class="form-label">Nazwisko</label>
+                    <input type="text" class="form-control" id="nazwisko" name="nazwisko" value="{{ uzytkownik.nazwisko }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="stare_haslo" class="form-label">Obecne hasło</label>
+                    <input type="password" class="form-control" id="stare_haslo" name="stare_haslo" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="nowe_haslo" class="form-label">Nowe hasło (zostaw puste jeśli nie chcesz zmieniać)</label>
+                    <input type="password" class="form-control" id="nowe_haslo" name="nowe_haslo">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="potwierdz_haslo" class="form-label">Potwierdź nowe hasło</label>
+                    <input type="password" class="form-control" id="potwierdz_haslo" name="potwierdz_haslo">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+                <a href="{{ url_for('moje_raporty') }}" class="btn btn-secondary">Anuluj</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const noweHaslo = document.getElementById('nowe_haslo').value;
+        const potwierdzHaslo = document.getElementById('potwierdz_haslo').value;
+        
+        if (noweHaslo && noweHaslo !== potwierdzHaslo) {
+            e.preventDefault();
+            alert('Nowe hasła nie są identyczne!');
+        }
+    });
+});
+</script>
+{% endblock %} 

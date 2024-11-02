@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Rejestracja</h2>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="login" class="form-label">Login</label>
+            <input type="text" class="form-control" id="login" name="login" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="imie" class="form-label">Imię</label>
+            <input type="text" class="form-control" id="imie" name="imie" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="nazwisko" class="form-label">Nazwisko</label>
+            <input type="text" class="form-control" id="nazwisko" name="nazwisko" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="haslo" class="form-label">Hasło</label>
+            <input type="password" class="form-control" id="haslo" name="haslo" required>
+        </div>
+        
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="admin" name="admin">
+            <label class="form-check-label" for="admin">Administrator</label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Zarejestruj</button>
+    </form>
+</div>
+{% endblock %} 

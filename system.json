@@ -1,0 +1,32 @@
+{
+    "uzytkownicy": {
+        "admin": {
+            "haslo": "hasło_admina",
+            "admin": true
+        }
+    },
+    "raporty": {
+        "admin": {
+            "2024-11-03": {
+                "godzina_rozpoczecia": "19:25",
+                "godzina_zakonczenia": "21:25",
+                "godzina_rozpoczecia_nadgodzin": "",
+                "godzina_zakonczenia_nadgodzin": "",
+                "godzina_rozpoczecia_zdalnej": "",
+                "godzina_zakonczenia_zdalnej": "",
+                "data": "2024-11-03"
+            },
+            "2024-11-02": {
+                "dzien_wolny": "CH",
+                "data": "2024-11-02"
+            }
+        }
+    },
+    "dni_wolne": {
+        "urlop": "Urlop wypoczynkowy",
+        "choroba": "Zwolnienie lekarskie",
+        "okolicznosciowy": "Urlop okolicznościowy",
+        "zadanie": "Zadanie służbowe",
+        "swieto": "Święto"
+    }
+}

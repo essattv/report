@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h4>Dodaj raport</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="data" class="form-label">Data</label>
+                        <input type="date" class="form-control" id="data" name="data" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="dzien_wolny" class="form-label">Dzień wolny</label>
+                        <select class="form-select" id="dzien_wolny" name="dzien_wolny">
+                            <option value="">Brak (dzień pracujący)</option>
+                            <option value="WŚ">Święto</option>
+                            <option value="DW">Dzień Wolny</option>
+                            <option value="NŻ">Na żądanie</option>
+                            <option value="CH">Chorobowe</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="godziny_pracy">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Standardowe godziny pracy</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="godzina_rozpoczecia" class="form-label">Godzina rozpoczęcia</label>
+                                    <input type="time" class="form-control" id="godzina_rozpoczecia" name="godzina_rozpoczecia">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="godzina_zakonczenia" class="form-label">Godzina zakończenia</label>
+                                    <input type="time" class="form-control" id="godzina_zakonczenia" name="godzina_zakonczenia">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Nadgodziny</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="godzina_rozpoczecia_nadgodzin" class="form-label">Godzina rozpoczęcia nadgodzin</label>
+                                    <input type="time" class="form-control" id="godzina_rozpoczecia_nadgodzin" name="godzina_rozpoczecia_nadgodzin">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="godzina_zakonczenia_nadgodzin" class="form-label">Godzina zakończenia nadgodzin</label>
+                                    <input type="time" class="form-control" id="godzina_zakonczenia_nadgodzin" name="godzina_zakonczenia_nadgodzin">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Praca zdalna</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="godzina_rozpoczecia_zdalnej" class="form-label">Godzina rozpoczęcia pracy zdalnej</label>
+                                    <input type="time" class="form-control" id="godzina_rozpoczecia_zdalnej" name="godzina_rozpoczecia_zdalnej">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="godzina_zakonczenia_zdalnej" class="form-label">Godzina zakończenia pracy zdalnej</label>
+                                    <input type="time" class="form-control" id="godzina_zakonczenia_zdalnej" name="godzina_zakonczenia_zdalnej">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">Dodaj raport</button>
+                    <a href="{{ url_for('moje_raporty') }}" class="btn btn-secondary">Anuluj</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('dzien_wolny').addEventListener('change', function() {
+    const godzinyPracy = document.getElementById('godziny_pracy');
+    if (this.value) {
+        godzinyPracy.style.display = 'none';
+    } else {
+        godzinyPracy.style.display = 'block';
+    }
+});
+</script>
+
+<style>
+.card-header h5 {
+    color: #666;
+    font-size: 1rem;
+}
+</style>
+{% endblock %} 

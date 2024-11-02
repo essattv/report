@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Lista pracowników</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Pracownik</th>
+                    <th>Typ konta</th>
+                    <th>Akcje</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for login, dane in uzytkownicy.items() %}
+                <tr>
+                    <td class="align-middle">{{ system.uzytkownicy[login].wyswietlana_nazwa }}</td>
+                    <td class="align-middle">
+                        {% if dane.admin %}
+                            Administrator
+                        {% else %}
+                            Pracownik
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('raporty_pracownika', login=login) }}" 
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-eye"></i> Zobacz raporty
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if not uzytkownicy %}
+        <div class="alert alert-info mt-3">
+            Brak pracowników w systemie.
+        </div>
+    {% endif %}
+</div>
+
+<!-- Dodaj FontAwesome dla ikon -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% endblock %} 

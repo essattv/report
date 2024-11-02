@@ -1,0 +1,726 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h4>Karta pracy</h4>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <select class="form-select" id="weekSelector" onchange="zmienTydzien(this.value)">
+                                {% for week in weeks %}
+                                    <option value="{{ week.dates[0] }}" 
+                                            {% if week.dates[0] == selected_week %}selected{% endif %}>
+                                        {% if week.is_current %}
+                                            Bieżący tydzień ({{ week.start }} - {{ week.end }})
+                                        {% else %}
+                                            {{ week.start }} - {{ week.end }}
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4 text-center my-3 my-md-0">
+                            <h5 class="mb-0 text-secondary">
+                                <i class="bi bi-calendar3"></i>
+                                {{ current_week_start }} - {{ current_week_end }}
+                            </h5>
+                        </div>
+                        
+                        <div class="col-md-4 text-md-end">
+                            <button type="button" class="btn btn-primary w-100 w-md-auto" 
+                                    onclick="otworzDodawanie('{{ selected_date if selected_date else week_dates[0] }}')">
+                                <i class="bi bi-plus-circle me-1"></i>Dodaj raport
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3 align-items-center">
+                <div class="col-md-6">
+                    <strong>Pracownik:</strong> {{ system.uzytkownicy[session.uzytkownik].wyswietlana_nazwa }}
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <strong>Scandinavian Print Group Polska, ul. Pomorska 112, 70-812 Szczecin, Polska</strong>
+                </div>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mt-3">
+                            <thead>
+                                <tr>
+                                    <th>Dzień tygodnia</th>
+                                    <th>Data</th>
+                                    <th>Godziny pracy</th>
+                                    <th>Praca zdalna</th>
+                                    <th>Nadgodziny</th>
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for date in week_dates %}
+                                <tr>
+                                    <td>{{ date | formatuj_date | split_first }}</td>
+                                    <td>{{ date }}</td>
+                                    {% if date in reports_by_date %}
+                                        {% set report = reports_by_date[date] %}
+                                        {% if report.dzien_wolny %}
+                                            <td colspan="3" class="text-center fw-bold">
+                                                {{ dni_wolne[report.dzien_wolny] }}
+                                            </td>
+                                        {% else %}
+                                            <td>
+                                                {% if report.godzina_rozpoczecia %}
+                                                    {{ report.godzina_rozpoczecia }} - {{ report.godzina_zakonczenia }}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if report.godzina_rozpoczecia_zdalnej %}
+                                                    {{ report.godzina_rozpoczecia_zdalnej }} - {{ report.godzina_zakonczenia_zdalnej }}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if report.godzina_rozpoczecia_nadgodzin %}
+                                                    {{ report.godzina_rozpoczecia_nadgodzin }} - {{ report.godzina_zakonczenia_nadgodzin }}
+                                                {% endif %}
+                                            </td>
+                                        {% endif %}
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-warning" 
+                                                        onclick="otworzEdytorRaportu('{{ date }}')"
+                                                        data-raport='{{ reports_by_date[date] | tojson | safe }}'>
+                                                    Edytuj
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" onclick="usunRaport('{{ date }}')">Usuń</button>
+                                            </div>
+                                        </td>
+                                    {% else %}
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table {
+        font-size: 14px;
+    }
+    .table th, .table td {
+        padding: 0.5rem;
+        vertical-align: middle;
+        text-align: center;
+    }
+    .table-bordered {
+        border: 2px solid #000;
+    }
+    .table-bordered th, .table-bordered td {
+        border: 1px solid #000;
+    }
+    td:first-child {
+        text-align: left;
+    }
+    .form-select {
+        min-width: 200px;
+    }
+    .table th:nth-child(1), /* Dzień tygodnia */
+    .table td:nth-child(1) {
+        width: 15%;
+        white-space: nowrap;
+    }
+    
+    .table th:nth-child(2), /* Data */
+    .table td:nth-child(2) {
+        width: 12%;
+        white-space: nowrap;
+        text-align: center;
+    }
+    
+    .table th:nth-child(3), /* Godziny pracy */
+    .table td:nth-child(3),
+    .table th:nth-child(4), /* Praca zdalna */
+    .table td:nth-child(4),
+    .table th:nth-child(5), /* Nadgodziny */
+    .table td:nth-child(5) {
+        width: 18%;
+        white-space: nowrap;
+        text-align: center;
+    }
+    
+    .table th:last-child, /* Akcje */
+    .table td:last-child {
+        width: 15%;
+        white-space: nowrap;
+        text-align: center;
+    }
+    
+    /* Wyśrodkuj tekst w kolumnach */
+    .table td {
+        vertical-align: middle;
+    }
+    
+    /* Styl dla przycisków akcji */
+    .btn-group {
+        display: inline-flex;
+    }
+    
+    /* Styl dla komórek z myślnikiem */
+    .table td:empty::before {
+        content: "-";
+    }
+    
+    /* Style dla nawigacji */
+    .btn-group {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .btn-group .btn {
+        border-radius: 0;
+    }
+    
+    .btn-group .btn:first-child {
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+    }
+    
+    .btn-group .btn:last-child {
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+    }
+    
+    /* Style dla nawigacji i kart */
+    .card {
+        border: none;
+        border-radius: 10px;
+    }
+    
+    .card-body {
+        padding: 1.25rem;
+    }
+    
+    .btn-group {
+        box-shadow: none;
+    }
+    
+    .btn-group .btn {
+        padding: 0.5rem 1rem;
+        border-color: #dee2e6;
+    }
+    
+    .btn-group .btn.active {
+        background-color: #6c757d;
+        color: white;
+        border-color: #6c757d;
+    }
+    
+    /* Style dla tabeli */
+    .table {
+        margin-bottom: 0;
+    }
+    
+    .table th {
+        border-top: none;
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    .table th:first-child,
+    .table td:first-child {
+        padding-left: 1.25rem;
+    }
+    
+    .table th:last-child,
+    .table td:last-child {
+        padding-right: 1.25rem;
+    }
+    
+    /* Responsywność */
+    @media (min-width: 768px) {
+        .w-md-auto {
+            width: auto !important;
+        }
+        
+        .text-md-end {
+            text-align: right !important;
+        }
+    }
+    
+    /* Style dla przycisków akcji */
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .btn-outline-primary:hover,
+    .btn-outline-danger:hover {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Style dla nagłówka z datami */
+    h5.text-secondary {
+        font-weight: 500;
+    }
+    
+    h5.text-secondary i {
+        margin-right: 0.5rem;
+    }
+    
+    /* Style dla selecta */
+    .form-select {
+        padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+        font-size: 0.95rem;
+        border-radius: 6px;
+        border-color: #dee2e6;
+        cursor: pointer;
+        background-color: #fff;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    
+    .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .form-select:hover {
+        border-color: #86b7fe;
+    }
+    
+    /* Responsywność */
+    @media (max-width: 768px) {
+        .form-select {
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Potwierdź usunięcie</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Czy na pewno chcesz usunąć raport z dnia <span id="deleteDate"></span>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <form id="deleteForm" method="POST">
+                    <button type="submit" class="btn btn-danger">Usuń</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Edytuj raport</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm" method="POST">
+                    <div class="mb-3">
+                        <label for="editData" class="form-label">Data</label>
+                        <input type="text" class="form-control" id="editData" disabled>
+                        <input type="hidden" id="editDataHidden" name="data">
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editIsDzienWolny" name="is_dzien_wolny" onchange="zmienTypDnia(this.checked ? 'wolny' : 'praca')">
+                            <label class="form-check-label" for="editIsDzienWolny">
+                                Dzień wolny
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="dzienWolnyInputs" style="display: none;">
+                        <div class="mb-3">
+                            <label for="editDzienWolny" class="form-label">Typ dnia wolnego</label>
+                            <select class="form-select" id="editDzienWolny" name="dzien_wolny">
+                                <option value="DW">Dzień wolny</option>
+                                <option value="CH">Chorobowe</option>
+                                <option value="WŚ">Wolne świąteczne</option>
+                                <option value="NŻ">Urlop na żądanie</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="dzienPracyInputs">
+                        <div class="mb-3">
+                            <label class="form-label">Godziny pracy stacjonarnej</label>
+                            <div class="row">
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_rozpoczecia" id="editGodzRozp">
+                                </div>
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_zakonczenia" id="editGodzZak">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Godziny pracy zdalnej</label>
+                            <div class="row">
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_rozpoczecia_zdalnej" id="editGodzRozpZdalnej">
+                                </div>
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_zakonczenia_zdalnej" id="editGodzZakZdalnej">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Nadgodziny</label>
+                            <div class="row">
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_rozpoczecia_nadgodzin" id="editGodzRozpNadgodzin">
+                                </div>
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_zakonczenia_nadgodzin" id="editGodzZakNadgodzin">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                        <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function formatujDate(dataStr) {
+        const data = new Date(dataStr);
+        const dniTygodnia = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+        const dzien = dniTygodnia[data.getDay()];
+        return `${dzien} ${dataStr}`;
+    }
+
+    window.otworzEdycje = function(data, raport) {
+        document.querySelector('#editModal .modal-title').textContent = 'Edytuj raport';
+        
+        const modal = new bootstrap.Modal(document.getElementById('editModal'));
+        const form = document.getElementById('editForm');
+        
+        form.action = `/edytuj_raport/${data}`;
+        
+        // Ustaw datę jako tylko do odczytu w trybie edycji
+        const editDataInput = document.getElementById('editData');
+        if (editDataInput) {
+            editDataInput.readOnly = true;
+            editDataInput.type = 'text';
+            editDataInput.value = formatujDate(data);
+        }
+        
+        // Zachowaj oryginalną datę w ukrytym polu
+        const editDataHidden = document.getElementById('editDataHidden');
+        if (editDataHidden) {
+            editDataHidden.value = data;
+        }
+        
+        const dzienWolnyCheck = document.getElementById('dzienWolnyCheck');
+        const typWolnegoEdit = document.getElementById('typWolnegoEdit');
+        const typWolnegoSelect = document.getElementById('typWolnegoSelect');
+        const godzinyPracyEdit = document.getElementById('godzinyPracyEdit');
+        
+        if (raport.dzien_wolny) {
+            dzienWolnyCheck.checked = true;
+            typWolnegoEdit.style.display = 'block';
+            godzinyPracyEdit.style.display = 'none';
+            typWolnegoSelect.value = raport.dzien_wolny;
+        } else {
+            dzienWolnyCheck.checked = false;
+            typWolnegoEdit.style.display = 'none';
+            godzinyPracyEdit.style.display = 'block';
+            
+            // Wypełnij godziny
+            form.querySelector('input[name="godzina_rozpoczecia"]').value = raport.godzina_rozpoczecia || '';
+            form.querySelector('input[name="godzina_zakonczenia"]').value = raport.godzina_zakonczenia || '';
+            form.querySelector('input[name="godzina_rozpoczecia_nadgodzin"]').value = raport.godzina_rozpoczecia_nadgodzin || '';
+            form.querySelector('input[name="godzina_zakonczenia_nadgodzin"]').value = raport.godzina_zakonczenia_nadgodzin || '';
+            form.querySelector('input[name="godzina_rozpoczecia_zdalnej"]').value = raport.godzina_rozpoczecia_zdalnej || '';
+            form.querySelector('input[name="godzina_zakonczenia_zdalnej"]').value = raport.godzina_zakonczenia_zdalnej || '';
+        }
+        
+        modal.show();
+    }
+
+    // Obsługa przełączania między dniem wolnym a godzinami pracy
+    document.getElementById('dzienWolnyCheck').addEventListener('change', function() {
+        const typWolnegoEdit = document.getElementById('typWolnegoEdit');
+        const godzinyPracyEdit = document.getElementById('godzinyPracyEdit');
+        const typWolnegoSelect = document.getElementById('typWolnegoSelect');
+        
+        if (this.checked) {
+            typWolnegoEdit.style.display = 'block';
+            godzinyPracyEdit.style.display = 'none';
+            if (!typWolnegoSelect.value) {
+                typWolnegoSelect.value = 'WŚ';
+            }
+        } else {
+            typWolnegoEdit.style.display = 'none';
+            godzinyPracyEdit.style.display = 'block';
+            typWolnegoSelect.value = '';
+        }
+    });
+
+    // Dodaj obsługę formularza
+    document.getElementById('editForm').addEventListener('submit', function(e) {
+        const dzienWolnyCheck = document.getElementById('dzienWolnyCheck');
+        const typWolnegoSelect = document.getElementById('typWolnegoSelect');
+        
+        if (dzienWolnyCheck.checked && !typWolnegoSelect.value) {
+            e.preventDefault();
+            alert('Wybierz typ dnia wolnego!');
+            return false;
+        }
+        
+        // Dodaj debugging
+        console.log('Wysyłanie formularza:');
+        console.log('Dzień wolny checked:', dzienWolnyCheck.checked);
+        console.log('Typ wolnego:', typWolnegoSelect.value);
+        
+        return validateForm(this);
+    });
+
+    // Dodaj obsługę zmiany daty w trybie dodawania
+    const editDataInput = document.getElementById('editData');
+    const editDataHidden = document.getElementById('editDataHidden');
+    
+    if (editDataInput) {
+        editDataInput.addEventListener('change', function() {
+            if (editDataHidden) {
+                editDataHidden.value = this.value;
+            }
+        });
+    }
+
+    // Dodaj nasłuchiwanie na kliknięcia przycisku edycji
+    document.querySelectorAll('[onclick^="otworzEdytorRaportu"]').forEach(button => {
+        button.addEventListener('click', function(e) {
+            console.log('Kliknięto przycisk edycji');
+        });
+    });
+
+    // Sprawd, czy modal jest dostępny
+    const editModal = document.getElementById('editModal');
+    if (!editModal) {
+        console.error('Nie znaleziono modalu o ID "editModal"');
+    }
+
+    // Sprawdź, czy dane raportów są dostępne
+    if (typeof reports_by_date === 'undefined') {
+        console.error('Zmienna reports_by_date nie jest zdefiniowana');
+    } else {
+        console.log('Dostępne raporty:', reports_by_date);
+    }
+});
+
+// Funkcja walidacji formularza
+function validateForm(formElement) {
+    const dzienWolny = formElement.querySelector('input[name="dzien_wolny"]').checked;
+    if (dzienWolny) return true;
+    
+    // Pobierz wszystkie pola godzin
+    const rozpoczecie = formElement.querySelector('input[name="godzina_rozpoczecia"]').value;
+    const zakonczenie = formElement.querySelector('input[name="godzina_zakonczenia"]').value;
+    const rozpoczecieZdalne = formElement.querySelector('input[name="godzina_rozpoczecia_zdalnej"]').value;
+    const zakonczenieZdalne = formElement.querySelector('input[name="godzina_zakonczenia_zdalnej"]').value;
+    const rozpoczecieNadgodziny = formElement.querySelector('input[name="godzina_rozpoczecia_nadgodzin"]').value;
+    const zakonczenieNadgodziny = formElement.querySelector('input[name="godzina_zakonczenia_nadgodzin"]').value;
+    
+    // Sprawdź standardowe godziny
+    if (rozpoczecie && !zakonczenie) {
+        alert('Musisz wprowadzić godzinę zakończenia dla standardowych godzin pracy.');
+        return false;
+    }
+    if (!rozpoczecie && zakonczenie) {
+        alert('Musisz wprowadzić godzinę rozpoczęcia dla standardowych godzin pracy.');
+        return false;
+    }
+    
+    // Sprawdź zdalne godziny
+    if (rozpoczecieZdalne && !zakonczenieZdalne) {
+        alert('Musisz wprowadzić godzinę zakończenia dla pracy zdalnej.');
+        return false;
+    }
+    if (!rozpoczecieZdalne && zakonczenieZdalne) {
+        alert('Musisz wprowadzić godzinę rozpoczęcia dla pracy zdalnej.');
+        return false;
+    }
+    
+    // Sprawdź nadgodziny
+    if (rozpoczecieNadgodziny && !zakonczenieNadgodziny) {
+        alert('Musisz wprowadzić godzinę zakończenia dla nadgodzin.');
+        return false;
+    }
+    if (!rozpoczecieNadgodziny && zakonczenieNadgodziny) {
+        alert('Musisz wprowadzić godzinę rozpoczęcia dla nadgodzin.');
+        return false;
+    }
+    
+    return true;
+}
+
+function potwierdzUsun(data) {
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    const form = document.getElementById('deleteForm');
+    const dateSpan = document.getElementById('deleteDate');
+    
+    // Ustaw datę w tekście potwierdzenia
+    dateSpan.textContent = data;
+    
+    // Ustaw action formularza
+    form.action = `/usun_raport/${data}`;
+    
+    modal.show();
+}
+
+// Funkcja do otwierania modalu w trybie dodawania
+function otworzDodawanie(data) {
+    console.log('Otwieranie dodawania dla daty:', data);
+    
+    const modal = new bootstrap.Modal(document.getElementById('editModal'));
+    document.querySelector('#editModal .modal-title').textContent = 'Dodaj raport';
+    
+    const form = document.getElementById('editForm');
+    form.reset();
+    form.action = '/dodaj_raport';
+    
+    const editDataInput = document.getElementById('editData');
+    const editDataHidden = document.getElementById('editDataHidden');
+    const isDzienWolny = document.getElementById('editIsDzienWolny');
+    
+    // Włącz możliwość edycji daty przy dodawaniu
+    editDataInput.type = 'date';
+    editDataInput.readOnly = false;
+    editDataInput.disabled = false;
+    editDataInput.value = data;
+    editDataHidden.value = data;
+    
+    // Dodaj nasłuchiwanie zmiany daty
+    editDataInput.addEventListener('change', function() {
+        editDataHidden.value = this.value;
+    });
+    
+    // Zresetuj formularz do domyślnego stanu
+    isDzienWolny.checked = false;
+    zmienTypDnia('praca');
+    
+    console.log('Otwieranie modalu z datą:', data);
+    modal.show();
+}
+
+function zmienTydzien(date) {
+    window.location.href = `/moje_raporty?week=${date}`;
+}
+
+function dodajRaport(data) {
+    window.location.href = `/dodaj_raport/${data}`;
+}
+
+function usunRaport(data) {
+    if (confirm('Czy na pewno chcesz usunąć raport z dnia ' + data + '?')) {
+        fetch(`/usun_raport/${data}`, {
+            method: 'POST'
+        }).then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Wystąpił błąd podczas usuwania raportu');
+            }
+        });
+    }
+}
+
+function otworzEdytorRaportu(data) {
+    const button = event.target;
+    const raport = JSON.parse(button.dataset.raport);
+    
+    console.log('Otwieranie edytora dla daty:', data);
+    console.log('Dane raportu:', raport);
+    
+    document.querySelector('#editModal .modal-title').textContent = 'Edytuj raport';
+    
+    const editDataInput = document.getElementById('editData');
+    const editDataHidden = document.getElementById('editDataHidden');
+    const isDzienWolny = document.getElementById('editIsDzienWolny');
+    
+    // Zablokuj edycję daty przy edycji raportu
+    editDataInput.type = 'text';
+    editDataInput.readOnly = true;
+    editDataInput.disabled = true;
+    editDataInput.value = data;
+    editDataHidden.value = data;
+
+    if (raport.dzien_wolny) {
+        isDzienWolny.checked = true;
+        zmienTypDnia('wolny');
+        document.getElementById('editDzienWolny').value = raport.dzien_wolny;
+    } else {
+        isDzienWolny.checked = false;
+        zmienTypDnia('praca');
+        document.getElementById('editGodzRozp').value = raport.godzina_rozpoczecia || '';
+        document.getElementById('editGodzZak').value = raport.godzina_zakonczenia || '';
+        document.getElementById('editGodzRozpZdalnej').value = raport.godzina_rozpoczecia_zdalnej || '';
+        document.getElementById('editGodzZakZdalnej').value = raport.godzina_zakonczenia_zdalnej || '';
+        document.getElementById('editGodzRozpNadgodzin').value = raport.godzina_rozpoczecia_nadgodzin || '';
+        document.getElementById('editGodzZakNadgodzin').value = raport.godzina_zakonczenia_nadgodzin || '';
+    }
+
+    document.getElementById('editForm').action = `/edytuj_raport/${data}`;
+    
+    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    editModal.show();
+}
+
+function zmienTypDnia(typ) {
+    const dzienPracyInputs = document.getElementById('dzienPracyInputs');
+    const dzienWolnyInputs = document.getElementById('dzienWolnyInputs');
+    
+    if (typ === 'wolny') {
+        dzienPracyInputs.style.display = 'none';
+        dzienWolnyInputs.style.display = 'block';
+    } else {
+        dzienPracyInputs.style.display = 'block';
+        dzienWolnyInputs.style.display = 'none';
+    }
+}
+
+// Debugging - sprawdź czy dane są dostępne
+console.log('Dostępne raporty:', reports_by_date);
+</script>
+{% endblock %} 

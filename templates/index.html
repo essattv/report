@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Witaj, {{ system.uzytkownicy[session.uzytkownik].wyswietlana_nazwa }}!</h1>
+    <h3>Co chcesz zrobić?</h3>
+    
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Moje raporty</h5>
+                    <p class="card-text">Przeglądaj i zarządzaj swoimi raportami czasu pracy.</p>
+                    <a href="{{ url_for('moje_raporty') }}" class="btn btn-primary">Przejdź do raportów</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Dodaj raport</h5>
+                    <p class="card-text">Dodaj nowy raport czasu pracy.</p>
+                    <a href="{{ url_for('dodaj_raport') }}" class="btn btn-primary">Dodaj raport</a>
+                </div>
+            </div>
+        </div>
+        
+        {% if session.admin %}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Lista pracowników</h5>
+                    <p class="card-text">Zarządzaj raportami wszystkich pracowników.</p>
+                    <a href="{{ url_for('lista_pracownikow') }}" class="btn btn-primary">Przejdź do listy</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Edytuj profil</h5>
+                    <p class="card-text">Zaktualizuj swoje dane osobowe i hasło.</p>
+                    <a href="{{ url_for('edytuj_profil') }}" class="btn btn-primary">Edytuj profil</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

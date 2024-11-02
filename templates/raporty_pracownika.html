@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h4>Raporty pracownika: {{ system.uzytkownicy[login].wyswietlana_nazwa }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <select class="form-select" id="weekSelector" onchange="zmienTydzien(this.value)">
+                                {% for week in weeks %}
+                                    <option value="{{ week.dates[0] }}" 
+                                            {% if week.dates[0] == selected_week %}selected{% endif %}>
+                                        {% if week.is_current %}
+                                            Bieżący tydzień ({{ week.start }} - {{ week.end }})
+                                        {% else %}
+                                            {{ week.start }} - {{ week.end }}
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4 text-center my-3 my-md-0">
+                            <h5 class="mb-0 text-secondary">
+                                <i class="bi bi-calendar3"></i>
+                                {{ current_week_start }} - {{ current_week_end }}
+                            </h5>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <button type="button" class="btn btn-success" onclick="pobierzPDF()">
+                                <i class="bi bi-file-earmark-pdf me-2"></i>
+                                Pobierz PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mt-3">
+                            <thead>
+                                <tr>
+                                    <th>Dzień tygodnia</th>
+                                    <th>Data</th>
+                                    <th>Godziny pracy</th>
+                                    <th>Praca zdalna</th>
+                                    <th>Nadgodziny</th>
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for date in week_dates %}
+                                <tr>
+                                    <td>{{ date | formatuj_date | split_first }}</td>
+                                    <td>{{ date }}</td>
+                                    {% if date in reports_by_date %}
+                                        {% set report = reports_by_date[date] %}
+                                        {% if report.dzien_wolny %}
+                                            <td colspan="3" class="text-center fw-bold">
+                                                {{ dni_wolne[report.dzien_wolny] }}
+                                            </td>
+                                        {% else %}
+                                            <td>
+                                                {% if report.godzina_rozpoczecia %}
+                                                    {{ report.godzina_rozpoczecia }} - {{ report.godzina_zakonczenia }}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if report.godzina_rozpoczecia_zdalnej %}
+                                                    {{ report.godzina_rozpoczecia_zdalnej }} - {{ report.godzina_zakonczenia_zdalnej }}
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if report.godzina_rozpoczecia_nadgodzin %}
+                                                    {{ report.godzina_rozpoczecia_nadgodzin }} - {{ report.godzina_zakonczenia_nadgodzin }}
+                                                {% endif %}
+                                            </td>
+                                        {% endif %}
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-warning" 
+                                                        onclick="otworzEdytorRaportu('{{ date }}')"
+                                                        data-raport='{{ reports_by_date[date] | tojson | safe }}'>
+                                                    Edytuj
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" onclick="usunRaport('{{ date }}')">Usuń</button>
+                                            </div>
+                                        </td>
+                                    {% else %}
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Te same style co w moje_raporty.html */
+    .table {
+        font-size: 14px;
+    }
+    .table th, .table td {
+        padding: 0.5rem;
+        vertical-align: middle;
+        text-align: center;
+    }
+    .table-bordered {
+        border: 2px solid #000;
+    }
+    .table-bordered th, .table-bordered td {
+        border: 1px solid #000;
+    }
+    td:first-child {
+        text-align: left;
+    }
+    
+    /* Style dla kolumn */
+    .table th:nth-child(1),
+    .table td:nth-child(1) {
+        width: 15%;
+        white-space: nowrap;
+    }
+    
+    .table th:nth-child(2),
+    .table td:nth-child(2) {
+        width: 12%;
+        white-space: nowrap;
+        text-align: center;
+    }
+    
+    .table th:nth-child(3),
+    .table td:nth-child(3),
+    .table th:nth-child(4),
+    .table td:nth-child(4),
+    .table th:nth-child(5),
+    .table td:nth-child(5) {
+        width: 18%;
+        white-space: nowrap;
+        text-align: center;
+    }
+    
+    /* Styl dla komórek z myślnikiem */
+    .table td:empty::before {
+        content: "-";
+    }
+
+    .btn-primary {
+        padding: 10px 20px;
+        font-size: 16px;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .bi-arrow-left-circle {
+        font-size: 1.1em;
+        vertical-align: -2px;
+    }
+</style>
+
+<script>
+function otworzEdytorRaportu(data) {
+    const button = event.target;
+    const raport = JSON.parse(button.dataset.raport);
+    
+    // Zmień tytuł modalu
+    document.querySelector('#editModal .modal-title').textContent = 'Edytuj raport';
+    
+    // Wypełnij formularz danymi
+    const editDataInput = document.getElementById('editData');
+    const editDataHidden = document.getElementById('editDataHidden');
+    const isDzienWolny = document.getElementById('editIsDzienWolny');
+    
+    editDataInput.readOnly = true;
+    editDataInput.disabled = true;
+    editDataInput.type = 'text';
+    editDataInput.value = data;
+    editDataHidden.value = data;
+
+    // Wypełnij pola formularza danymi z raportu
+    if (raport.dzien_wolny) {
+        isDzienWolny.checked = true;
+        zmienTypDnia('wolny');
+        document.getElementById('editDzienWolny').value = raport.dzien_wolny;
+    } else {
+        isDzienWolny.checked = false;
+        zmienTypDnia('praca');
+        document.getElementById('editGodzRozp').value = raport.godzina_rozpoczecia || '';
+        document.getElementById('editGodzZak').value = raport.godzina_zakonczenia || '';
+        document.getElementById('editGodzRozpZdalnej').value = raport.godzina_rozpoczecia_zdalnej || '';
+        document.getElementById('editGodzZakZdalnej').value = raport.godzina_zakonczenia_zdalnej || '';
+        document.getElementById('editGodzRozpNadgodzin').value = raport.godzina_rozpoczecia_nadgodzin || '';
+        document.getElementById('editGodzZakNadgodzin').value = raport.godzina_zakonczenia_nadgodzin || '';
+    }
+
+    // Zmień action formularza aby uwzględnić login pracownika
+    document.getElementById('editForm').action = `/edytuj_raport/{{ login }}/${data}`;
+
+    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    editModal.show();
+}
+
+function zmienTypDnia(typ) {
+    const dzienPracyInputs = document.getElementById('dzienPracyInputs');
+    const dzienWolnyInputs = document.getElementById('dzienWolnyInputs');
+    
+    if (typ === 'wolny') {
+        dzienPracyInputs.style.display = 'none';
+        dzienWolnyInputs.style.display = 'block';
+    } else {
+        dzienPracyInputs.style.display = 'block';
+        dzienWolnyInputs.style.display = 'none';
+    }
+}
+
+function usunRaport(data) {
+    if (confirm('Czy na pewno chcesz usunąć raport z dnia ' + data + '?')) {
+        fetch(`/usun_raport/{{ login }}/${data}`, {
+            method: 'POST'
+        }).then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Wystąpił błąd podczas usuwania raportu');
+            }
+        });
+    }
+}
+
+function zmienTydzien(date) {
+    window.location.href = `/raporty_pracownika/{{ login }}?week=${date}`;
+}
+
+function pobierzPDF() {
+    const url = `/pobierz_raport_pdf/{{ login }}?week={{ selected_week }}`;
+    window.location.href = url;
+}
+</script>
+
+<!-- Dodaj modal do edycji przed zamknięciem </div class="container"> -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Edytuj raport</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm" method="POST">
+                    <div class="mb-3">
+                        <label for="editData" class="form-label">Data</label>
+                        <input type="text" class="form-control" id="editData" disabled>
+                        <input type="hidden" id="editDataHidden" name="data">
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editIsDzienWolny" name="is_dzien_wolny" onchange="zmienTypDnia(this.checked ? 'wolny' : 'praca')">
+                            <label class="form-check-label" for="editIsDzienWolny">
+                                Dzień wolny
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="dzienWolnyInputs" style="display: none;">
+                        <div class="mb-3">
+                            <label for="editDzienWolny" class="form-label">Typ dnia wolnego</label>
+                            <select class="form-select" id="editDzienWolny" name="dzien_wolny">
+                                <option value="DW">Dzień wolny</option>
+                                <option value="CH">Chorobowe</option>
+                                <option value="WŚ">Wolne świąteczne</option>
+                                <option value="NŻ">Urlop na żądanie</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="dzienPracyInputs">
+                        <div class="mb-3">
+                            <label class="form-label">Godziny pracy stacjonarnej</label>
+                            <div class="row">
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_rozpoczecia" id="editGodzRozp">
+                                </div>
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_zakonczenia" id="editGodzZak">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Godziny pracy zdalnej</label>
+                            <div class="row">
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_rozpoczecia_zdalnej" id="editGodzRozpZdalnej">
+                                </div>
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_zakonczenia_zdalnej" id="editGodzZakZdalnej">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Nadgodziny</label>
+                            <div class="row">
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_rozpoczecia_nadgodzin" id="editGodzRozpNadgodzin">
+                                </div>
+                                <div class="col">
+                                    <input type="time" class="form-control" name="godzina_zakonczenia_nadgodzin" id="editGodzZakNadgodzin">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                        <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dodaj przed zamknięciem kontenera głównego -->
+<div class="text-center mt-4 mb-3">
+    <a href="{{ url_for('lista_pracownikow') }}" class="btn btn-primary">
+        <i class="bi bi-arrow-left-circle me-2"></i>
+        Powrót do listy pracowników
+    </a>
+</div>
+{% endblock %}

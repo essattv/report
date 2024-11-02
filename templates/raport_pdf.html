@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .header {
+            margin-bottom: 20px;
+        }
+        .company-info {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Raport pracy: {{ system.uzytkownicy[login].wyswietlana_nazwa }}</h2>
+        <p>Okres: {{ current_week_start }} - {{ current_week_end }}</p>
+    </div>
+    
+    <div class="company-info">
+        <p>Scandinavian Print Group Polska<br>
+        ul. Pomorska 112<br>
+        70-812 Szczecin, Polska</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Dzień tygodnia</th>
+                <th>Data</th>
+                <th>Godziny pracy</th>
+                <th>Praca zdalna</th>
+                <th>Nadgodziny</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for date in week_dates %}
+            <tr>
+                <td>{{ date | formatuj_date | split_first }}</td>
+                <td>{{ date }}</td>
+                {% if date in reports_by_date %}
+                    {% set report = reports_by_date[date] %}
+                    {% if report.dzien_wolny %}
+                        <td colspan="3" style="text-align: center; font-weight: bold;">
+                            {{ dni_wolne[report.dzien_wolny] }}
+                        </td>
+                    {% else %}
+                        <td>
+                            {% if report.godzina_rozpoczecia %}
+                                {{ report.godzina_rozpoczecia }} - {{ report.godzina_zakonczenia }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if report.godzina_rozpoczecia_zdalnej %}
+                                {{ report.godzina_rozpoczecia_zdalnej }} - {{ report.godzina_zakonczenia_zdalnej }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if report.godzina_rozpoczecia_nadgodzin %}
+                                {{ report.godzina_rozpoczecia_nadgodzin }} - {{ report.godzina_zakonczenia_nadgodzin }}
+                            {% endif %}
+                        </td>
+                    {% endif %}
+                {% else %}
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html> 
