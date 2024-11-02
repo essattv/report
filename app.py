@@ -2,7 +2,6 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 from datetime import datetime, timedelta
 from system import SystemRaportowania
-from functools import wraps
 import tempfile
 import pdfkit
 
@@ -263,70 +262,34 @@ def moje_raporty():
 @wymaga_zalogowania
 def raporty_pracownika(login):
     if not czy_admin(session['uzytkownik']):
+        flash('Brak uprawnień!', 'danger')
         return redirect(url_for('index'))
 
-    # Pobierz wszystkie raporty pracownika
-    raporty = system.pobierz_raporty_pracownika(login)
-    
-    # Zbierz wszystkie unikalne daty raportów
-    daty_raportow = sorted(set(raport['data'] for raport in raporty))
-    
-    if not daty_raportow:
-        today = date.today()
-        monday = today - timedelta(days=today.weekday())
-        week_dates = [(monday + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
-        weeks = [{
-            'start': monday.strftime('%d.%m.%Y'),
-            'end': (monday + timedelta(days=6)).strftime('%d.%m.%Y'),
-            'dates': week_dates,
-            'is_current': True
-        }]
-    else:
-        # Grupuj daty raportów w tygodnie
-        weeks = []
-        for data_str in daty_raportow:
-            data = datetime.strptime(data_str, '%Y-%m-%d').date()
-            monday = data - timedelta(days=data.weekday())
-            week_end = monday + timedelta(days=6)
-            
-            # Sprawdź czy ten tydzień już istnieje
-            week_exists = False
-            for week in weeks:
-                week_start = datetime.strptime(week['dates'][0], '%Y-%m-%d').date()
-                if monday == week_start:
-                    week_exists = True
-                    break
-            
-            if not week_exists:
-                week_dates = [(monday + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
-                weeks.append({
-                    'start': monday.strftime('%d.%m.%Y'),
-                    'end': week_end.strftime('%d.%m.%Y'),
-                    'dates': week_dates,
-                    'is_current': monday == (date.today() - timedelta(days=date.today().weekday()))
-                })
-        
-        # Sortuj tygodnie od najnowszego
-        weeks.sort(key=lambda x: datetime.strptime(x['dates'][0], '%Y-%m-%d'), reverse=True)
+    # Pobierz parametr week z URL
+    selected_week = request.args.get('week')
+    if not selected_week:
+        selected_week = datetime.now().strftime('%Y-%m-%d')
 
-    # Pobierz aktualnie wybrany tydzień
-    selected_week = request.args.get('week', weeks[0]['dates'][0] if weeks else None)
-    if selected_week:
-        selected_date = datetime.strptime(selected_week, '%Y-%m-%d').date()
-        selected_monday = selected_date - timedelta(days=selected_date.weekday())
-        week_dates = [(selected_monday + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
+    # Przygotuj dane tygodnia
+    week_dates, reports_by_date, current_week_start, current_week_end = przygotuj_dane_tygodnia(selected_week)
+    
+    # Pobierz raporty dla danego pracownika
+    if login in system.raporty:
+        for raport in system.raporty[login]:
+            if raport['data'] in week_dates:
+                reports_by_date[raport['data']] = raport
 
-    # Przekształć raporty na słownik z datami jako kluczami
-    reports_by_date = {raport['data']: raport for raport in raporty}
+    # Przygotuj listę tygodni do wyboru
+    weeks = przygotuj_liste_tygodni()
 
     return render_template('raporty_pracownika.html',
                          login=login,
-                         weeks=weeks,
                          week_dates=week_dates,
                          reports_by_date=reports_by_date,
+                         weeks=weeks,
                          selected_week=selected_week,
-                         dni_wolne=DNI_WOLNE,  # Używamy istniejącego słownika
-                         system=system)
+                         current_week_start=current_week_start,
+                         current_week_end=current_week_end)
 
 @app.route('/lista_pracownikow')
 def lista_pracownikow():
